@@ -464,13 +464,15 @@ void transaction_push_back(struct TransactionQueue* q, struct Account* account1,
 }
 
 void transaction(struct TransactionQueue* q, struct Account* account1, struct Account* account2){
-    double amountToTransfer;   
-    
+    double amountToTransfer;
+
     do{
-        printf("Enter the amount of money you want to transfer: ");
+        printf(ANSI_COLOR_RESET);
+        printf(ANSI_COLOR_PINK);
+        printf(ANSI_COLOR_BLACK, "Enter the amount of money you want to transfer: ");
         scanf("%lf", &amountToTransfer);
     }while(amountToTransfer < 0);
-    
+
     transaction_push_back(q, account1, account2, amountToTransfer);
 }
 
@@ -480,13 +482,13 @@ void put_transactions_in_file(struct TransactionQueue* q) {
         f = fopen("transactions.txt", "w");
     if(f == NULL)
         printf("Error opening file");
-    
+
     while(iterator != NULL) {
-         
+
         fprintf(f, "%s\n", iterator->fromAccount->username);
         fprintf(f, "%s\n", iterator->toAccount->username);
         fprintf(f, "%.2lf\n\n", iterator->amountToTransfer);
-        
+
         iterator = iterator->next;
     }
 
@@ -496,9 +498,27 @@ fclose(f);
 void popQueue(struct TransactionQueue* q) {
     if(q->head == NULL)
         return;
-    q->head->fromAccount->money -= q->head->amountToTransfer;
-    q->head->toAccount->money += q->head->amountToTransfer;
-    q->head = q->head->next;
+    if(q->head->fromAccount->money < q->head->amountToTransfer)
+        printf("You do not have enough money to process this transaction!\n");
+    else{
+        printf("The transaction was successful!\n");
+        q->head->fromAccount->money -= q->head->amountToTransfer;
+        q->head->toAccount->money += q->head->amountToTransfer;
+        q->head = q->head->next;
+    }
+   while(1){
+   int option; 
+   printf("Enter 1 to proceed: ");
+   scanf("%d", &option);
+   switch (option)
+   {
+   case 1: return;
+    break;
+   
+   default:
+    break;
+   }
+   }
 }
 
 
@@ -539,14 +559,15 @@ void main_menu(struct Account* account, struct Hashtable* table, struct Transact
             case 3: system("cls");
                     struct LinkedListNode* account2 = calloc(1, sizeof(struct Account));
                     char user[MAX_USERNAME_LENGTH];
-                    printf("\n\t\t\tEnter the username of the person you want to transfer money to: ");
+                    printf(ANSI_COLOR_PINK "Enter the username of the person you want to transfer money to: ");
                     scanf("%s", user);
                     account2 = find_user(table, user);
+                    printf(ANSI_COLOR_BLUE);
                     if(account2 == NULL){
-                        printf("There is no such user and the transaction is not successful!\n");
                         break;
                     }
                     transaction(q, account, account2->acc);
+                    printf(ANSI_COLOR_BLUE);
                     put_transactions_in_file(q);
                     put_hashtable_in_file(table, "data.txt");
                     break;
@@ -589,16 +610,16 @@ void register_login_menu(struct Hashtable* table, const char* filename, const ch
         switch (option) {
             case 1:
                 system("cls");
-                printf(ANSI_COLOR_BLUE);
+                printf(ANSI_COLOR_PINK);
                 register_user(table, filename);
                 printf("\n");
-                printf(ANSI_COLOR_BLUE);
+                printf(ANSI_COLOR_PINK);
                 loggedUser = login_user(table, filename);
                 break;
 
             case 2:
                 system("cls");
-                printf(ANSI_COLOR_BLUE);
+                printf(ANSI_COLOR_BLACK);
                 loggedUser = login_user(table, filename);
                 break;
 
@@ -703,7 +724,7 @@ void load_transactions_from_file(struct TransactionQueue* q, char* path, struct 
     char line[MAX_LINE_LENGTH];
     char username1[MAX_USERNAME_LENGTH];
     char username2[MAX_USERNAME_LENGTH];
-    
+
     struct LinkedListNode* node1 = calloc(1, sizeof(struct LinkedListNode));
     struct LinkedListNode* node2 = calloc(1, sizeof(struct LinkedListNode));
     struct Account* account1 = calloc(1, sizeof(struct Account));
@@ -741,14 +762,14 @@ void load_transactions_from_file(struct TransactionQueue* q, char* path, struct 
         account1 = node1->acc;
         account2 = node2->acc;
         transaction_push_back(q, account1, account2, money);
-        
+
     }
-    
+
 
     fclose(f);
-    
-}
 
+}
+/*
 void print_queue(struct TransactionQueue* q){
     struct Transaction* iterator = q->head;
     while(iterator != NULL){
@@ -759,23 +780,23 @@ void print_queue(struct TransactionQueue* q){
 
     }
 }
-
+*/
 int hash_file(char* filePath){
     int h = 0;
     char line[MAX_LINE_LENGTH];
-    
+
     FILE *f;
     f = fopen(filePath, "r");
     while(!feof(f)){
         if(fgets(line, MAX_LINE_LENGTH, f) == NULL)
             break;
         line[strcspn(line, "\n")] = '\0';
-        
+
         for(size_t i = 0; i < strlen(line); ++i){
             h += i * line[i];
         }
     }
-
+    fclose(f);
     return h;
 }
 
@@ -797,7 +818,7 @@ int main()
 
     if(!compare_files(filenameForTempFile, filenameForResultFile)){
         load_data_from_file(table, filenameForTempFile);
-    }else{
+    }else {
         load_data_from_file(table, filenameForResultFile);
     }
     load_transactions_from_file(q, "transactions.txt", table);
